@@ -100,31 +100,48 @@ local function buildStarsFunction ()
     
 end
 
-local function updateJetTrail (jetState, radianAngle)
+local function updateJetGroup ()
+        
+    local jetLength = 50
+    local positionAngle
+    
+    positionAngle = ship.rotation
+    
+        
+    -- Start making position Angle give me the direction the object is pointing not amount of rotations
+    while positionAngle > 360 do
+
+    positionAngle = positionAngle - 360
+
+    end
+
+
+    while positionAngle < 0 do
+
+    positionAngle = positionAngle + 360
+
+    end
+
+    --End changes to position angle
+   
+    local radianAngle = positionAngle * 0.0174532925
+        
+    --Update position 
+
+
+    flameGroup.y = ship.y + math.cos(radianAngle)* jetLength
+    flameGroup.x = ship.x - math.sin(radianAngle) * jetLength 
+
+    flameGroup.rotation  = radianAngle * 57.2957795131
+end
+
+local function updateJetTrail (jetState)
     
     if jetState == true then
-        hiddenJetStream = false
-        
-        local jetLength = 50
-        
-        --Update position 
-        
-       -- flameTrail.x = ship.x
-       -- flameTrail.y = ship.y + 0
-        
-        flameTrail.y = ship.y + math.cos(radianAngle)* jetLength
-        flameTrail.x = ship.x - math.sin(radianAngle) * jetLength 
-        
-        flameTrail.rotation  = radianAngle * 57.2957795131
         
         flameTrail.isVisible = true
     else
-        if hiddenJetStream == false then
-            
-            flameTrail.isVisible = false
-            hiddenJetStream = true            
-        end
-        
+            flameTrail.isVisible = false          
     end
 end
 
@@ -174,7 +191,7 @@ local function goForwardFunction()
   ship:applyLinearImpulse( moveX, moveY, ship.x, ship.y )
   
    
-   updateJetTrail(true, radianAngle)
+   updateJetTrail(true)
    
 end
 
@@ -249,25 +266,28 @@ end
 
 
 local function controlLoop()
+    
+    updateJetGroup()
   
   if turnLeftState == true then
       
-      --ship.angularVelocity = 0
+      ship.angularVelocity = ship.angularVelocity - 10
+      rightFlameTrail.isVisible = true
+      
+  else
+      
+      rightFlameTrail.isVisible = false
+      
+    end
         
-       -- ship.rotate(ship, 10)
-       
-       
-       
-       ship.angularVelocity = ship.angularVelocity - 10
-        end
+    if turnRightState == true then
+    
+        ship.angularVelocity = ship.angularVelocity + 10
+        leftFlameTrail.isVisible = true
+    
+    else
         
-if turnRightState == true then
-    
-    --ship.angularVelocity = 0 
-
-    --ship.rotate(ship, -10)
-    
-    ship.angularVelocity = ship.angularVelocity + 10
+        leftFlameTrail.isVisible = false
     
     end
     
@@ -276,7 +296,7 @@ if goForwardState == true then
 goForwardFunction()
 
 else
-    updateJetTrail(false, 0)
+    updateJetTrail(false)
 end
 
 local spinFriction = 2
@@ -486,6 +506,15 @@ planetEarth.x, planetEarth.y = 2000, 550
 --physics.addBody( asteroidSmall, { density=0.4, friction=0.3, bounce=0.3 } )
 flameTrail = display.newImageRect( "transparentStraightTrail1.png", 10.25, 38 )
 flameTrail.isVisible = false  
+
+leftFlameTrail = display.newImageRect( "transparentStraightTrail1.png", 5,19)
+leftFlameTrail.isVisible = false  
+
+
+
+rightFlameTrail = display.newImageRect( "transparentStraightTrail1.png", 5, 19)
+rightFlameTrail.isVisible = false  
+
     
     --Declare groups
 
@@ -493,18 +522,12 @@ local group = self.view
       
 displayGroup = display.newGroup()
 
+flameGroup = display.newGroup()
+
 --All background item inserts
 
 
 --displayGroup: insert(backgroundGroup)
-
---All asteroid inserts
-
-
-   
-    
-    
-
 
 buildBackgrounds()
 displayGroup:insert(planetEarth)
@@ -512,12 +535,24 @@ displayGroup: insert(asteroidSmall)
 
 --Inserts into ship
 displayGroup: insert(ship)
-displayGroup: insert(flameTrail)
+
+flameGroup: insert(flameTrail)
+flameGroup: insert(leftFlameTrail)
+flameGroup: insert(rightFlameTrail)
+
+displayGroup: insert(flameGroup)
 
 
 group:insert( displayGroup)
        
        
+flameTrail.rotation = -5
+flameTrail.x, flameTrail.y = 8, 5
+       
+leftFlameTrail.x, leftFlameTrail.y = -30, 0
+leftFlameTrail.rotation = -5
+rightFlameTrail.x, rightFlameTrail.y = 30, -25
+rightFlameTrail.rotation = -5
        
        --asteroidSmall.x, asteroid.y = 100, 150
 
@@ -563,7 +598,7 @@ group:insert( displayGroup)
         
         local flameX = halfW + 7
         
-        flameTrail.x, flameTrail.y = flameX, flameY
+        flameGroup.x, flameGroup.y = flameX, flameY
 	
 	-- add physics to the ship
 	--physics.addBody( ship, { density=0.4, friction=0.3, bounce=0.3 } )
