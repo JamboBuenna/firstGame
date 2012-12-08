@@ -56,12 +56,24 @@ function scene:createScene( event )
     interfaceGroup = display.newGroup()
     shipGroup = display.newGroup()
     
+    menuShapeGroup = display.newGroup()
+    menuWeaponGroup = display.newGroup()
+    
+    menuGroup = display.newGroup()
+    
+    menuShapeGroup.x, menuShapeGroup.y = 360,60
+    menuShapeGroup.isVisible = false
+    
+    menuGroup.x, menuGroup.y = 180, 60 
+    
+    
     local widget = require "widget"
     
     
     --Declare objects
     
     --typeText.x, typeText.y = 260, display.contentHeight - 90
+    
     typeText.x, typeText.y = 250, display.contentHeight - 180
     
     itemsAddedText.x, itemsAddedText.y = display.contentWidth - 100, 50
@@ -78,9 +90,33 @@ function scene:createScene( event )
     heightText.x, heightText.y = 430, display.contentHeight - 180
     widthText.x, widthText.y = 700, display.contentHeight - 180
     
+    local function closeMenu()
+        menuGroup.isVisible = false
+        menuShapeGroup.isVisible = false
+        menuWeaponGroup.isVisible = false
+    end
     
-     local function addSquareBtnRelease() 
-           print("test")
+    local function addShapeBtnRelease() 
+        if menuShapeGroup.isVisible == true then
+          menuShapeGroup.isVisible = false
+        else
+          menuShapeGroup.isVisible = true  
+        end
+    end
+       
+       local addShapeBtn = widget.newButton{
+		label="Add Shape",
+		labelColor = { default={255}, over={128} },
+		default="button.png",
+		over="button-over.png",
+		width=180, height=60,
+		onRelease = addShapeBtnRelease	-- event listener function
+	}
+	addShapeBtn.x,addShapeBtn.y = 0,0
+        
+           local function addSquareBtnRelease() 
+           print("add square")
+           closeMenu()
        end
        
        local addSquareBtn = widget.newButton{
@@ -91,11 +127,50 @@ function scene:createScene( event )
 		width=180, height=60,
 		onRelease = addSquareBtnRelease	-- event listener function
 	}
-	addSquareBtn.x,addSquareBtn.y = 0,120
-        addSquareBtn.isVisible = false
+	addSquareBtn.x,addSquareBtn.y = 0,0
+    
+    
+     local function addCircleBtnRelease() 
+           print("add circle")
+           closeMenu()
+       end
+       
+       local addCircleBtn = widget.newButton{
+		label="Add Circle",
+		labelColor = { default={255}, over={128} },
+		default="button.png",
+		over="button-over.png",
+		width=180, height=60,
+		onRelease = addCircleBtnRelease	-- event listener function
+	}
+	addCircleBtn.x,addCircleBtn.y = 0,60
+        
+         local function addWeaponBtnRelease() 
+           print("add weapon")
+       end
+       
+       local addWeaponBtn = widget.newButton{
+		label="Add Weapon",
+		labelColor = { default={255}, over={128} },
+		default="button.png",
+		over="button-over.png",
+		width=180, height=60,
+		onRelease = addWeaponBtnRelease	-- event listener function
+	}
+	addWeaponBtn.x,addWeaponBtn.y = 0,60
+        
        
         local function onMenuBtnRelease() 
-           addSquareBtn.isVisible = true
+            if menuGroup.isVisible == true then
+              menuGroup.isVisible = false
+              if menuShapeGroup.isVisible == true then
+                menuShapeGroup.isVisible = false
+            end
+            else
+              menuGroup.isVisible = true  
+            end
+            
+          
        end
        
        local menuBtn = widget.newButton{
@@ -137,11 +212,29 @@ function scene:createScene( event )
         listener = widthSliderListener
     }
 
+    --Hide menu groups
+    menuGroup.isVisible = false
+
+    menuShapeGroup:insert(addCircleBtn)
+    menuShapeGroup:insert(addSquareBtn)
+
+
+    --Insert menu group items
+    menuGroup:insert(addShapeBtn)
+    menuGroup:insert(addWeaponBtn)
+    
+    --Insert menu groups
+    
+    interfaceGroup:insert(menuGroup)
+    interfaceGroup:insert(menuShapeGroup)
+    interfaceGroup:insert(menuWeaponGroup)
     
     interfaceGroup:insert(heightText)
     interfaceGroup:insert(widthText)
     interfaceGroup:insert(widthSlider)
     interfaceGroup:insert(heightSlider)
+    
+    
     
     group:insert(shipGroup)
     group:insert(interfaceGroup)
