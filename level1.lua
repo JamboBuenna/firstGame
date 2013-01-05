@@ -6,6 +6,9 @@
 
 local storyboard = require( "storyboard" )
 local gg = require("golemgravity")
+require "healthBar"
+require "mapScreen"
+
 local xGrav, yGrav=0, 0
 
 local scene = storyboard.newScene()
@@ -21,6 +24,13 @@ cameraPositionY = 0
 local shipPositionX = 500
 local shipPositionY = 450
 
+cannonState = 0
+
+cannonReady = 10
+
+
+shipRadianAngle = 0
+
 cameraUpdate = 0
 
 
@@ -32,11 +42,18 @@ local screenW, screenH, halfW, halfH = display.contentWidth, display.contentHeig
 
 local hiddenJetStream = true
 
+local healthBar = HealthBar:new()
+healthBar.x, healthBar.y = 50, 50
+healthBar:setHealth(100, 100)
 
+local mapScreen = MapScreen:new()
+mapScreen.x, mapScreen.y = screenW - 50, 120
+--mapScreen:setPosition(100, 100)
 
 local turnLeftState = false
 local turnRightState = false
 local goForwardState = false
+local shootState = false
 
 _m=math.random
 
@@ -46,6 +63,91 @@ local function buildLoadingScreen ()
     loadingText:setReferencePoint( display.CenterReferencePoint )
     loadingText.x = display.contentWidth * 0.5
     loadingText.y = 200
+end
+
+local bullets = {}
+local n = 0
+ 
+local function fireShot()
+    
+     
+    local shipHorizontalAngle = shipRadianAngle + 1.5
+    
+    if shipHorizontalAngle > 6 then
+        shipHorizontalAngle = shipHorizontalAngle - 6
+    end
+
+    
+    local forwardDistance = 35
+    local horizontalDistance = 45
+    local bulletSpeed = 500
+    
+    local bulletForwardX =  math.sin(shipRadianAngle) * forwardDistance 
+    local bulletForwardY = (math.cos(shipRadianAngle)* forwardDistance) * -1
+    
+    local bulletHorizontalX =  math.sin(shipHorizontalAngle) * horizontalDistance  
+    local bulletHorizontalY = (math.cos(shipHorizontalAngle)* horizontalDistance) * -1  
+    
+    --Start left shot
+        n = n + 1
+        
+        local shotLeft
+        local shotRight
+        
+        bullets[n] = display.newImage( "shotOne.png", 20, 20)
+        bullets[n + 1] = display.newImage( "shotOne.png", 20, 20)
+        
+        shotLeft = bullets[n]
+        shotRight = bullets[n + 1]
+        
+        --Settings for shot left
+        
+        shotLeft.height, shotLeft.width = 20, 10
+        shotLeft.rotation = ship.rotation
+        
+       -- bricks[n].x, bricks[n].y = 20, 40
+        physics.addBody( shotLeft, { density=3.0, friction=0.5, bounce=0.05 } )
+ 
+        -- remove the "isBullet" setting below to see the brick pass through cans without colliding!
+        shotLeft.isBullet = true
+        
+    local startPositionX = ship.x + bulletForwardX - bulletHorizontalX 
+    local startPositionY = (ship.y) + bulletForwardY - bulletHorizontalY  
+        
+        shotLeft.x, shotLeft.y = startPositionX, startPositionY
+        
+        --Settings for shot right
+        
+        shotRight.height, shotRight.width = 20, 10
+        shotRight.rotation = ship.rotation
+        
+       -- bricks[n].x, bricks[n].y = 20, 40
+        physics.addBody( shotRight, { density=3.0, friction=0.5, bounce=0.05 } )
+ 
+        -- remove the "isBullet" setting below to see the brick pass through cans without colliding!
+        shotRight.isBullet = true
+        
+    local shotRightPositionX = ship.x + bulletForwardX + bulletHorizontalX 
+    local shotRightPositionY = (ship.y) + bulletForwardY + bulletHorizontalY  
+        
+        shotRight.x, shotRight.y = shotRightPositionX, shotRightPositionY
+        
+        
+    --Calculate velocity    
+    velocityY =  (math.cos(shipRadianAngle)* bulletSpeed) * -1
+    velocityX =  math.sin(shipRadianAngle) * bulletSpeed 
+    
+    --print(shipRadianAngle)
+    
+        --bullets[n].angularVelocity = 100
+        
+        shotLeft:applyForce(velocityX, velocityY, shotLeft.x, shotLeft.y)
+        shotRight:applyForce(velocityX, velocityY, shotRight.x, shotRight.y )
+        
+        backgroundGroup:insert(shotLeft)
+        backgroundGroup:insert(shotRight)
+        
+        n = n + 1 
 end
 
 
@@ -124,15 +226,15 @@ local function updateJetGroup ()
 
     --End changes to position angle
    
-    local radianAngle = positionAngle * 0.0174532925
+    shipRadianAngle = positionAngle * 0.0174532925
         
     --Update position 
 
 
-    flameGroup.y = ship.y + math.cos(radianAngle)* jetLength
-    flameGroup.x = ship.x - math.sin(radianAngle) * jetLength 
+    flameGroup.y = ship.y + math.cos(shipRadianAngle)* jetLength
+    flameGroup.x = ship.x - math.sin(shipRadianAngle) * jetLength 
 
-    flameGroup.rotation  = radianAngle * 57.2957795131
+    flameGroup.rotation  = shipRadianAngle * 57.2957795131
 end
 
 local function updateJetTrail (jetState)
@@ -299,6 +401,22 @@ else
     updateJetTrail(false)
 end
 
+if
+    cannonState < cannonReady then
+    cannonState = cannonState + 1
+end
+
+
+if shootState == true then
+    
+    if cannonState == cannonReady then
+        
+        fireShot()
+        cannonState = 0
+    end
+    
+end
+
 local spinFriction = 2
 
 -- A bit of friction for the spin 
@@ -415,6 +533,33 @@ local function onForwardButtonTouch( self, event )
     return true
 end
 
+local function onShootButtonTouch( self, event )
+    if event.phase == "began" then
+
+        -- specify the global touch focus
+        shootState = true
+        
+        display.getCurrentStage():setFocus( self )
+        self.isFocus = true
+
+    elseif self.isFocus then
+        if event.phase == "moved" then
+
+            -- do something here; or not
+
+        elseif event.phase == "ended" or event.phase == "cancelled" then
+        
+            shootState = false
+            
+            -- reset global touch focus
+            display.getCurrentStage():setFocus( nil )
+            self.isFocus = nil
+        end
+    end
+
+    return true
+end
+
 
 local function buildBackground(x, y)
         
@@ -473,14 +618,21 @@ end
 function scene:createScene( event )
     
     --Declare objects
-ship = display.newImageRect( "transparentShip1.png", 83, 83 )
+--ship = display.newImageRect( "ship2.png", 130, 196 )
+ship = display.newImageRect( "ship2.png", 93, 140 )
 physics.addBody( ship, { density=0.4, friction=0.3, bounce=0.3 } )
 
-asteroidSmall = display.newImageRect( "AsteroidSmall.png", 300, 260)
+--asteroidSmall = display.newImageRect( "AsteroidSmall.png", 300, 260)
+--physics.addBody(asteroidSmall, { density = 0.4, friction = 0.3, bounce = 0.3, radius = 90 })
+
+asteroidSmall = display.newImageRect( "AsteroidSmall.png", 150, 130)
 physics.addBody(asteroidSmall, { density = 0.4, friction = 0.3, bounce = 0.3, radius = 90 })
 
-planetEarth = display.newImageRect( "planetEarth.png", 1000, 1000 )
-physics.addBody(planetEarth, { density = 4.0, friction = 0.3, bounce = 0.3, radius = 440 })
+asteroidSmall.x, asteroidSmall.y = -300, 50
+asteroidSmall:applyLinearImpulse( 30, -30, asteroidSmall.x, asteroidSmall.y )
+
+planetEarth = display.newImageRect( "planetEarth.png", 1500, 1500 )
+physics.addBody(planetEarth, { density = 4.0, friction = 0.3, bounce = 0.3, radius = 665 })
 
 local myField = gg.newForceField(
     {
@@ -489,19 +641,11 @@ local myField = gg.newForceField(
     radius=1000
     }
 )
-myField.x, myField.y = 2000,550
+myField.x, myField.y = 500,1000
 myField:activate()
 
---gg.setGravityBounds(planetEarth, {
---    direction="horizontal",
---    gravity={
---        sideA = {-0.1, 0},
---        sideB = {0.1, 0}}
---    }
---)
 
-
-planetEarth.x, planetEarth.y = 2000, 550
+planetEarth.x, planetEarth.y = 500, 1220
 
 --physics.addBody( asteroidSmall, { density=0.4, friction=0.3, bounce=0.3 } )
 flameTrail = display.newImageRect( "transparentStraightTrail1.png", 10.25, 38 )
@@ -546,39 +690,39 @@ displayGroup: insert(flameGroup)
 group:insert( displayGroup)
        
        
-flameTrail.rotation = -5
-flameTrail.x, flameTrail.y = 8, 5
+--flameTrail.rotation = -5
+flameTrail.x, flameTrail.y = 0.5, 28
        
-leftFlameTrail.x, leftFlameTrail.y = -30, 0
+leftFlameTrail.x, leftFlameTrail.y = -45, 20
 leftFlameTrail.rotation = -5
-rightFlameTrail.x, rightFlameTrail.y = 30, -25
+rightFlameTrail.x, rightFlameTrail.y = 45, 20
 rightFlameTrail.rotation = -5
-       
-       --asteroidSmall.x, asteroid.y = 100, 150
-
-        
        
 
 	--ADD THE CONTROLS GUI CODE
 	
-	local leftButton = display.newImageRect( "movementButton.png", 90, 90 )
+	local leftButton = display.newImageRect( "movementButton.png", 120, 120 )
 	leftButton:setReferencePoint( display.CenterReferencePoint )
-	leftButton.x = 50
+	leftButton.x = -50
 	leftButton.y = 700
 	
-	local rightButton = display.newImageRect( "movementButton.png", 90, 90 )
+	local rightButton = display.newImageRect( "movementButton.png", 120, 120 )
 	rightButton:setReferencePoint( display.CenterReferencePoint )
 	rightButton.rotation = 180
-	rightButton.x = 180
+	rightButton.x = 130
 	rightButton.y = 700
 	
 	
-	local forwardButton = display.newImageRect( "movementButton.png", 90, 90 )
+	local forwardButton = display.newImageRect( "movementButton.png", 120, 120 )
 	forwardButton:setReferencePoint( display.CenterReferencePoint )
 	forwardButton.rotation = 90
-	forwardButton.x = 115
-	forwardButton.y = 620
+	forwardButton.x = 40	forwardButton.y = 600
+        
+        local shootButton = display.newImageRect( "shootButton.png", 120, 120)
+	shootButton:setReferencePoint( display.CenterReferencePoint )
+	shootButton.x,shootButton.y = 1050, 700
 	
+        
 	-- add functions onto buttons
 	
 		-- begin detecting touches
@@ -590,6 +734,9 @@ rightFlameTrail.rotation = -5
 	
 	forwardButton.touch = onForwardButtonTouch
 	forwardButton:addEventListener( "touch", forwardButton )
+        
+        shootButton.touch = onShootButtonTouch
+	shootButton:addEventListener( "touch", shootButton )
 
 	--Position the ship in the middle of the screen
 	--ship.x, ship.y = halfW, halfH
@@ -598,20 +745,7 @@ rightFlameTrail.rotation = -5
         
         local flameX = halfW + 7
         
-        flameGroup.x, flameGroup.y = flameX, flameY
-	
-	-- add physics to the ship
-	--physics.addBody( ship, { density=0.4, friction=0.3, bounce=0.3 } )
-	
-	-- create a grass object and add physics (with custom shape)
-	--local grass = display.newImageRect( "grass.png", screenW, 82 )
-	--grass:setReferencePoint( display.BottomLeftReferencePoint )
-	--grass.x, grass.y = 0, display.contentHeight
-	
-	-- define a shape that's slightly shorter than image bounds (set draw mode to "hybrid" or "debug" to see)
-	--local grassShape = { -halfW,-34, halfW,-34, halfW,34, -halfW,34 }
-	--physics.addBody( grass, "static", { friction=0.3, shape=grassShape } )
-        
+        flameGroup.x, flameGroup.y = flameX, flameY      
         
         buildLoadingScreen()
 	

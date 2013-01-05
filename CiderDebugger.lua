@@ -1,5 +1,5 @@
 local CiderRunMode = {};CiderRunMode.runmode = true;CiderRunMode.sdk = "Corona";CiderRunMode.assertImage = true;CiderRunMode.userdir = "C:/Users/James/AppData/Roaming/.luaglider/dev";local CORONA_SOCKET_PORT=51248;local SOCKET_PORT=51249;local GLIDER_MAIN_FOLDER= "C:/Users/James/Documents/Corona Projects/firstGame";local useNativePrint= false;
---v1.69
+--v1.70
 -----------------------------------------------------------------------------------------
 --
 -- main.lua
@@ -7,7 +7,7 @@ local CiderRunMode = {};CiderRunMode.runmode = true;CiderRunMode.sdk = "Corona";
 -----------------------------------------------------------------------------------------
 io.stdout:setvbuf("no")
 local json = {}
-function loadJson()
+local function loadJson()
     
     local string = string
     local math = math
@@ -603,7 +603,7 @@ local nativePrint = print
 local nativeError = error
 local inc = 0;
 local function sendConsoleMessage(...)
-	inc = inc+1;
+    inc = inc+1;
     --also send via udp to cider
     --we must break up this message into parts so that it does not get truncated
     local message = {}
@@ -630,25 +630,25 @@ local function sendConsoleMessage(...)
     else        
         udpSocket:send(messageString)	
     end	
-	
+    
 end
 local function debugPrint(...)	
-	if(useNativePrint) then
-    nativePrint(...)
-	else
-    sendConsoleMessage(...)
-	end
+    if(useNativePrint) then
+        nativePrint(...)
+    else
+        sendConsoleMessage(...)
+    end
 end
 print = debugPrint
 local function debugError(...)
-	if(useNativePrint) then
-    nativeError(...)
-	else
-    sendConsoleMessage(...)
+    if(useNativePrint) then
+        nativeError(...)
+    else
+        sendConsoleMessage(...)
     end
 end
 
-error = debugError
+--error = debugError
 --this will block the program initially and wait for netbeans connection
 
 local varRefTable = {} --holds ref to all discovered vars, must remove or leak.
@@ -860,9 +860,9 @@ end
 
 local function writeStackDump() --write the var dump to file
     local stackString = json.encode(stackDump(5));
-    stackDumpFile = io.open(pathToStack,"w") --clear dump
-    stackDumpFile:write( stackString.."\n" )
-    stackDumpFile:close( );
+--    stackDumpFile = io.open(pathToStack,"w") --clear dump
+--    stackDumpFile:write( stackString.."\n" )
+--    stackDumpFile:close( );
     udpSocket:send( json.encode( {["type"]="st",["data"]=stackString} ) )   
     -- stackDump(6);
     --    local Root = {}
@@ -1108,7 +1108,7 @@ processFunctions.e = function( evt )
             gyroZ = evt.zRotation;
         end
     end
-
+    
 end
 processFunctions.k = function( evt )
     --just remove all the breakpoints
@@ -1134,16 +1134,16 @@ local function runloop( phase, lineKey, err )
         --send the error and just stop h
         local message = {}
         message.type = "pe"	
-        message.str = err
-        udpSocket:send( json.encode( message ) )
+        message.str = err.."\n"..(debug.traceback("message",2)) .."\n"      
         
+        udpSocket:send( json.encode( message ) )      
         --    processFunctions.p( ) 			
     end   
     sethook ( runloop, "r",0 ) --errors occur during returns
 end
 
 
-local function debugloop( phase,lineKey,err )
+local function debugloop( phase,lineKey,err)
     sethook ( )	
     ---@class string
     local fileKey = getinfo( 2,"S" ).source 
@@ -1152,16 +1152,17 @@ local function debugloop( phase,lineKey,err )
         --send the error and just stop h
         local message = {}
         message.type = "pe"	
-        message.str = err
+    
+        message.str = err.."\n"..(debug.traceback("message",2)) .."\n"
         udpSocket:send( json.encode( message ) )   
-        processFunctions.p( ) 			
+	processFunctions.p( ) 		
     end
     
---    print("fileKey"..fileKey, fileKey:sub(2,2));
+    --    print("fileKey"..fileKey, fileKey:sub(2,2));
     if( fileKey:sub(2,2) == ".") then
         
         fileKey = GLIDER_MAIN_FOLDER..fileKey:sub(3);
---        print("modifying"..fileKey);
+        --        print("modifying"..fileKey);
     end
     if( fileKey~="=?" and fileKey~="=[C]" ) then
         
@@ -1251,8 +1252,8 @@ local function debugloop( phase,lineKey,err )
                 
                 
                 --we must break up this message into parts so that it does not get truncated
-                logfile:write( json.encode( logMessage ).."\n" )
-                logfile:flush( )
+--                logfile:write( json.encode( logMessage ).."\n" )
+--                logfile:flush( )
                 
                 
             end
@@ -1384,8 +1385,8 @@ local function initBlock( )
     varDumpFile = io.open( pathToVar,"w" )
     varDumpFile:close();
     pathToStack = CiderRunMode.userdir.."/CiderStackDump.dat";
-    stackDumpFile = io.open( pathToStack,"w" )
-    stackDumpFile:close();   
+--    stackDumpFile = io.open( pathToStack,"w" )
+--    stackDumpFile:close();   
     message.type = "s"	
     
     --    message.type = "s"	
@@ -1402,7 +1403,7 @@ local function initBlock( )
     while( keepWaiting ) do
         socket.sleep(0.1)
         if(line and line:len()>3) then
- 
+            
             line = json.decode(line)
             if(line.type=="s") then
                 if(line.snapshot) then
@@ -1413,7 +1414,7 @@ local function initBlock( )
                 end
                 
                 fileFilters = line.filters;                
-
+                
                 startupMode = line.startup;
                 keepWaiting = false
                 break; 
@@ -1422,7 +1423,7 @@ local function initBlock( )
                 processFunctions[line.type](line);--proccess current then the rest		
             end
         else 
-	
+            
             udpSocket:send(json.encode(message));
         end 
         line = udpSocket:receive()		
