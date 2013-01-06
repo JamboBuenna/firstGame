@@ -6,12 +6,15 @@
 
 local storyboard = require( "storyboard" )
 local gg = require("golemgravity")
+local PS = require("classes.ParticleSugar").instance()
 require "healthBar"
 require "mapScreen"
 
 local xGrav, yGrav=0, 0
 
 local scene = storyboard.newScene()
+
+
  
 
 -- include Corona's "physics" library
@@ -668,6 +671,56 @@ displayGroup = display.newGroup()
 
 flameGroup = display.newGroup()
 
+--Lets play with particles
+
+----------- particle begin -------------
+	Runtime:addEventListener('enterFrame', PS )
+	
+	local dustEm = PS:newEmitter{
+		name="pointLoopEm",
+		x=0,y=0,
+		rotation=0,
+		visible=true,
+		loop=false, 
+		autoDestroy=false
+	}
+    dustEm:setParentGroup(group)
+	dustEm.x = 160
+	dustEm.y = 160
+	
+
+    PS:newParticleType{
+		name="starPt",prop={
+			scaleStart = 1,
+			scaleVariation = 0,
+			velocityStart = 30,
+			velocityVariation = 100,			
+			rotationStart = 0,
+			rotationChange = 8,
+			rotationVariation = 360,
+			directionVariation = 30,
+			killOutsideScreen = false,
+			lifeTime = 5000,
+			alphaStart = 1,
+			bounceX = true,
+			colorStart = {255,0,0},
+			colorChange = {0,3,0},
+			shape = {
+				type = 'rect',
+				width = 20,
+				height = 8,
+			}
+		}
+	}
+
+    PS:attachParticleType("pointLoopEm", "starPt", 500, 300, 0)
+
+	----------- particle end -------------
+
+
+--End playing with particles
+
+
 --All background item inserts
 
 
@@ -687,8 +740,17 @@ flameGroup: insert(rightFlameTrail)
 displayGroup: insert(flameGroup)
 
 
+      
+
 group:insert( displayGroup)
-       
+
+       	local caption1 = display.newText(group, "test particles",100,420,native.systemFont, 24)
+	caption1:addEventListener('touch',function(event)
+		if event.phase ~= 'ended' then return end
+		
+		dustEm.rotation = math.random(360)
+		PS:startEmitter('pointLoopEm',true)
+	end)
        
 --flameTrail.rotation = -5
 flameTrail.x, flameTrail.y = 0.5, 28
